@@ -24,7 +24,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(rainbow-delimiters company session helm-ag jedi csv-mode magit restclient-helm helm-git-grep helm-ls-git)))
+   '(all-the-icons-dired all-the-icons rainbow-delimiters company session helm-ag jedi csv-mode magit restclient-helm helm-git-grep helm-ls-git)))
 
 ;; ---------
 ;; Basic
@@ -237,13 +237,29 @@
 ;; DIRED
 ;; -------
 
-(require 'dired)   ;; default emacs install 
-(require 'dired-x) ;; default emacs install 
+(require 'dired)   ;; available with default emacs install 
+(require 'dired-x) ;; available with default emacs install 
 
 (setq  dired-sort-menu-saved-config
        (quote ((dired-actual-switches . "-lah")
 	       (ls-lisp-ignore-case . t)
 	       (ls-lisp-dirs-first . t))))
+
+;; dired icons
+(dolist (package '(all-the-icons all-the-icons-dired))
+  (unless (package-installed-p package)
+    (package-install package)))
+
+(defvar emacs-font-directory (concat "~/.emacs.d/fonts/"))
+(if (file-directory-p emacs-font-directory) nil
+  (progn
+    (make-directory emacs-font-directory)
+    (all-the-icons-install-fonts)))
+;;; this will download required fonts, but still need to install them manually on windows (double click)
+
+(when (display-graphic-p)
+  (require 'all-the-icons)
+  (add-hook 'dired-mode-hook 'all-the-icons-dired-mode))
 
 (defun dired-ediff-marked-files ()
   "Run ediff on marked ediff files."
@@ -398,7 +414,7 @@
   (when isearch-forward (goto-char isearch-other-end)))
 (add-hook 'isearch-mode-end-hook 'custom-goto-match-beginning)
 
-;; macro pour toutes les lignes d'une région
+;; macro pour toutes les lignes d'une rÃ©gion
 (global-set-key "\C-ce" 'apply-macro-to-region-lines)
 
 ;; uniquify & sort-lines
@@ -690,9 +706,9 @@ by using nxml's indentation rules."
 ;; (setq calendar-week-start-day 1  ; 0:Sunday, 1:Monday
 ;;       calendar-day-name-array ["Dimanche" "Lundi" "Mardi" "Mercredi"
 ;;     						   "Jeudi" "Vendredi" "Samedi"]
-;;       calendar-month-name-array ["Janvier" "Février" "Mars" "Avril" "Mai"
+;;       calendar-month-name-array ["Janvier" "FÃ©vrier" "Mars" "Avril" "Mai"
 ;;     							 "Juin" "Juillet" "Aout" "Septembre"
-;;     							 "Octobre" "Novembre" "Décembre"]
+;;     							 "Octobre" "Novembre" "DÃ©cembre"]
 ;;       )
 
 
@@ -864,14 +880,6 @@ by using nxml's indentation rules."
 
 
 ;; ------------------
-;; Kiabi
-;; ------------------
-
-(fset 'pporders-fix
-   (kmacro-lambda-form [C-right C-right C-backspace C-right C-right C-left C-left C-right ?\C-  C-left ?\M-w ?\C-a C-right right ?\C-v C-right C-right C-right ?\C-  C-left ?\M-w C-left C-left C-left C-right ?\C-v C-right C-right ?\C-  C-left ?\C-w C-left ?\C-v ?\C-  C-right ?\C-w C-right C-left C-left C-right right ?\C-v ?\C-a] 0 "%d"))
-
-
-;; ------------------
 ;; SERVER mode
 ;; ------------------
 
@@ -887,3 +895,9 @@ by using nxml's indentation rules."
 ;; shortcut to start emacs under windows 
 ;; d:\emacs-27.1-x86_64\bin\emacsclientw.exe -c -n -a d:\emacs-27.1-x86_64\bin\runemacs.exe
 
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
