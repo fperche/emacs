@@ -24,7 +24,8 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(all-the-icons-dired all-the-icons rainbow-delimiters company session helm-ag jedi csv-mode magit restclient-helm helm-git-grep helm-ls-git)))
+   (quote
+    (restclient helm-projectile helm-swoop helm powershell all-the-icons-dired all-the-icons rainbow-delimiters company session helm-ag jedi csv-mode magit restclient-helm helm-git-grep helm-ls-git))))
 
 ;; ---------
 ;; Basic
@@ -74,7 +75,14 @@
 ;; UI
 ;; ---------
 
-;; apparence d'emacs
+(when window-system (set-frame-size (selected-frame) 80 24))
+
+;; Default Window 
+(set-foreground-color "white")
+(set-background-color "gray10")
+(set-cursor-color "firebrick")
+
+;; New Frames
 (setq default-frame-alist
       (append default-frame-alist
               '((foreground-color . "white")
@@ -82,11 +90,11 @@
                 (cursor-color . "firebrick"))))
 
 
+
 ;; windows font
-;;(set-frame-font "-outline-Courier New-normal-r-normal-normal-11-*-96-96-c-*-iso8859-1")
-;;(set-frame-font "-outline-Consolas-normal-normal-normal-mono-12-*-*-*-c-*-iso8859-1")
-(add-to-list 'default-frame-alist '(font . "-outline-Consolas-normal-normal-normal-mono-14-*-*-*-c-*-iso8859-1" ))
-(set-face-attribute 'default t :font "-outline-Consolas-normal-normal-normal-mono-14-*-*-*-c-*-iso8859-1" )
+(when (member "Consolas" (font-family-list)) ;; when consolas font is available on system : use it 
+  (add-to-list 'default-frame-alist '(font . "-outline-Consolas-normal-normal-normal-mono-14-*-*-*-c-*-iso8859-1" ))
+  (set-face-attribute 'default t :font "-outline-Consolas-normal-normal-normal-mono-14-*-*-*-c-*-iso8859-1" ))
 
 ;; max font lock settings 
 (require 'font-lock)
@@ -200,16 +208,18 @@
 ;; CSV
 ;; ---------
 
-;; install csv-mode and requires it
-(dolist (package '(csv-mode))
-  (unless (package-installed-p package)
-    (package-install package)))
-
-(use-package csv-mode
-  :ensure t
-  :mode "\\.csv$"
-  :init
-  (setq csv-separators '("|")))
+(when (not (< emacs-major-version 27))
+  (progn
+    ;; install csv-mode and requires it
+    (dolist (package '(csv-mode))
+      (unless (package-installed-p package)
+	(package-install package)))
+    (use-package csv-mode
+      :ensure t
+      :mode "\\.csv$"
+      :init
+      (setq csv-separators '("|")))
+    ))
 
 ;; ---------
 ;; BOOKMARKS
@@ -232,6 +242,58 @@
     (bind-key [remap completion-at-point] #'company-complete company-mode-map)
     (setq company-dabbrev-downcase nil))
   :diminish company-mode)
+
+;; ----------
+;; BASIC SHORTCUTS
+;; ----------
+(cua-mode nil)
+(global-set-key [(control meta o)] 'find-file)
+
+(global-set-key "\M-l" (quote goto-line))
+(global-set-key "\C-x\ a" (quote mark-whole-buffer))
+
+;; screen split
+(global-set-key [f4] (quote kill-this-buffer))
+(global-set-key [f5] (quote delete-window)) ;; ferme la fenetre f5
+(global-set-key [f6] (quote other-window)) ;; rotation du cuseur			  f6
+(global-set-key [f7] (quote split-window-vertically)) ;; coupe en vertical	 f7
+(global-set-key [f8] (quote split-window-horizontally))	;; coupe en horizontal f8
+
+(defun isearch-occur ()
+  "Invoke `occur' from within isearch."
+  (interactive)
+  (let ((case-fold-search isearch-case-fold-search))
+    (occur (if isearch-regexp isearch-string (regexp-quote isearch-string)))))
+(define-key isearch-mode-map (kbd "C-o") 'isearch-occur)
+
+;; always exit searches at the beginning of the expression found
+(defun custom-goto-match-beginning ()
+  "Use with isearch hook to end search at first char of match."
+  (when isearch-forward (goto-char isearch-other-end)))
+(add-hook 'isearch-mode-end-hook 'custom-goto-match-beginning)
+
+;; macro pour toutes les lignes d'une région
+(global-set-key "\C-ce" 'apply-macro-to-region-lines)
+
+;; uniquify & sort-lines
+(defun uniquify-region ()
+  "remove duplicate adjacent lines in the given region"
+  (interactive)
+  (narrow-to-region (region-beginning) (region-end))
+  (beginning-of-buffer)
+  (while (re-search-forward "\\(.*\n\\)\\1+" nil t)
+    (replace-match "\\1" nil nil))
+  (widen)
+  nil)
+
+;; Rectangles / Column mode
+;; Copy rectangle : C-x r r r ==> C-x * 2 while selecting in CUA + r (rectangle) + r (put to register) + r (name of the register)
+;; Insert rectangle : C-x r i r ==> C-x * 2 while selecting in CUA + r (rectangle) + i (insert from register) + r (name of the register)
+
+;; Kill ring
+;; C-y (or C-v in CUA) + M-y : paste old value from kill-ring
+;; browse-kill-ring : visit and edit the kill ring
+
 
 ;; -------
 ;; DIRED
@@ -332,13 +394,13 @@
 	  (lambda ()
             (dired-hide-details-mode)))
 
-
 ;; ---------------------
 ;; TRAMP
 ;; ---------------------
 
 (eval-after-load 'tramp '(setenv "SHELL" "/bin/bash"))
 (setq password-cache-expiry nil)
+
 
 ;; ---------------------
 ;; FIND / GREP
@@ -347,7 +409,10 @@
 
 (global-set-key "\C-x\ f" (quote find-name-dired))
 
-(setq find-program "gfind.exe")
+;; unix find need to be installed manually with, renamed to gfind and put in path
+(if (eq system-type 'windows-nt)
+    (setq find-program "gfind.exe")) 
+
 ;; pattern for find
 (setq find-ls-option (quote ("-exec ls -ld {} \;" . "-ld")))
 
@@ -362,6 +427,7 @@
 (setq grep-find-template "gfind . <X> -type f <F> -exec grep -a <C> -nH -e <R> {} \";\" ")
 
 ;; -type f -regex ".*.\(js\|xml\|ts\|java\|sql\)" -and -not -path "*bower*" -and -not -path "*target*" 
+
 
 
 ;; ----------
@@ -382,59 +448,6 @@
 ;;(global-set-key [(control tab)] (quote dabbrev-expand))
 ;;(global-set-key (kbd "<C-next>") (quote tabbar-forward))
 ;;(global-set-key (kbd "<C-prior>")(quote tabbar-backward))
-
-
-;; ----------
-;; SHORTCUTS
-;; ----------
-(cua-mode nil)
-(global-set-key [(control meta o)] 'find-file)
-
-(global-set-key "\M-l" (quote goto-line))
-(global-set-key "\C-x\ a" (quote mark-whole-buffer))
-
-;; screen split
-(global-set-key [f4] (quote kill-this-buffer))
-(global-set-key [f5] (quote delete-window)) ;; ferme la fenetre f5
-(global-set-key [f6] (quote other-window)) ;; rotation du cuseur			  f6
-(global-set-key [f7] (quote split-window-vertically)) ;; coupe en vertical	 f7
-(global-set-key [f8] (quote split-window-horizontally))	;; coupe en horizontal f8
-
-(defun isearch-occur ()
-  "Invoke `occur' from within isearch."
-  (interactive)
-  (let ((case-fold-search isearch-case-fold-search))
-    (occur (if isearch-regexp isearch-string (regexp-quote isearch-string)))))
-(define-key isearch-mode-map (kbd "C-o") 'isearch-occur)
-
-
-;; always exit searches at the beginning of the expression found
-(defun custom-goto-match-beginning ()
-  "Use with isearch hook to end search at first char of match."
-  (when isearch-forward (goto-char isearch-other-end)))
-(add-hook 'isearch-mode-end-hook 'custom-goto-match-beginning)
-
-;; macro pour toutes les lignes d'une région
-(global-set-key "\C-ce" 'apply-macro-to-region-lines)
-
-;; uniquify & sort-lines
-(defun uniquify-region ()
-  "remove duplicate adjacent lines in the given region"
-  (interactive)
-  (narrow-to-region (region-beginning) (region-end))
-  (beginning-of-buffer)
-  (while (re-search-forward "\\(.*\n\\)\\1+" nil t)
-    (replace-match "\\1" nil nil))
-  (widen)
-  nil)
-
-;; Rectangles / Column mode
-;; Copy rectangle : C-x r r r ==> C-x * 2 while selecting in CUA + r (rectangle) + r (put to register) + r (name of the register)
-;; Insert rectangle : C-x r i r ==> C-x * 2 while selecting in CUA + r (rectangle) + i (insert from register) + r (name of the register)
-
-;; Kill ring
-;; C-y (or C-v in CUA) + M-y : paste old value from kill-ring
-;; browse-kill-ring : visit and edit the kill ring
 
 
 ;; ----------
@@ -511,6 +524,7 @@
   :mode ("\\.ps1" . powershell-mode)
   :ensure t)
 
+
 ;; ---------
 ;; XML
 ;; ---------
@@ -542,6 +556,7 @@ by using nxml's indentation rules."
 ;; (use-package xml-format
 ;;   :demand t
 ;;   :after nxml-mode)
+
 
 ;; ------------------
 ;; SQL
@@ -621,7 +636,7 @@ by using nxml's indentation rules."
 ;; ------------------
 
 ;; install helm package which are going to be required
-(dolist (package '(helm helm-swoop helm-projectile helm-ls-git helm-git-grep))
+(dolist (package '(helm helm-swoop helm-projectile helm-ls-git helm-git-grep helm-ag))
   (unless (package-installed-p package)
     (package-install package)))
 
@@ -679,6 +694,7 @@ by using nxml's indentation rules."
 
 ;; http://andrewjamesjohnson.com/suppressing-ad-handle-definition-warnings-in-emacs/
 (setq ad-redefinition-action 'accept)
+
 
 ;; ------------------
 ;; ORG-MODE
@@ -883,21 +899,16 @@ by using nxml's indentation rules."
 ;; SERVER mode
 ;; ------------------
 
-(require 'server)
+(if (eq system-type 'windows-nt)
+    (progn 
+      (require 'server)
+      
+      (if (eq (server-running-p) :other)
+	  (server-force-delete))
 
-(if (eq (server-running-p) :other)
-    (server-force-delete))
+      (unless (server-running-p)
+	(server-start)
+	(set-frame-parameter nil 'title "Emacs Server"))))
 
-(unless (server-running-p)
-  (server-start)
-  (set-frame-parameter nil 'title "Emacs Server"))
-
-;; shortcut to start emacs under windows 
-;; d:\emacs-27.1-x86_64\bin\emacsclientw.exe -c -n -a d:\emacs-27.1-x86_64\bin\runemacs.exe
-
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
+;; shortcut to start emacs under windows
+;; D:\emacs\bin\emacsclientw.exe -c -n -a d:\emacs\bin\runemacs.exe
