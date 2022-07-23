@@ -12,40 +12,57 @@
   (add-to-list 'package-archives '("marmalade" . "http://marmalade-repo.org/packages/")))
 (package-initialize)
 
-;; install use-package and requires it
-(dolist (package '(use-package))
-  (unless (package-installed-p package)
-    (package-install package)))
-(require 'use-package)
+;; Ensure use-package is installed and loaded
+(condition-case nil
+    (require 'use-package)
+  (file-error
+   (require 'package)
+   (package-initialize)
+   (package-refresh-contents)
+   (package-install 'use-package)
+   (require 'use-package)))
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(marginalia-annotator-registry
+   '((file marginalia-annotator-local-file-no-modes marginalia-annotate-file builtin none)
+     (command marginalia-annotate-binding builtin none marginalia-annotate-command)
+     (embark-keybinding marginalia-annotate-embark-keybinding builtin none)
+     (customize-group marginalia-annotate-customize-group builtin none)
+     (variable marginalia-annotate-variable builtin none)
+     (function marginalia-annotate-function builtin none)
+     (face marginalia-annotate-face builtin none)
+     (color marginalia-annotate-color builtin none)
+     (unicode-name marginalia-annotate-char builtin none)
+     (minor-mode marginalia-annotate-minor-mode builtin none)
+     (symbol marginalia-annotate-symbol builtin none)
+     (environment-variable marginalia-annotate-environment-variable builtin none)
+     (input-method marginalia-annotate-input-method builtin none)
+     (coding-system marginalia-annotate-coding-system builtin none)
+     (charset marginalia-annotate-charset builtin none)
+     (package marginalia-annotate-package builtin none)
+     (imenu marginalia-annotate-imenu builtin none)
+     (bookmark marginalia-annotate-bookmark builtin none)
+     (file marginalia-annotate-file builtin none)
+     (project-file marginalia-annotate-project-file builtin none)
+     (buffer marginalia-annotate-buffer builtin none)
+     (library marginalia-annotate-library builtin none)
+     (tab marginalia-annotate-tab builtin none)
+     (multi-category marginalia-annotate-multi-category builtin none)))
  '(package-selected-packages
-   (quote
-    (restclient helm-projectile helm-swoop helm powershell all-the-icons-dired all-the-icons rainbow-delimiters company session helm-ag jedi csv-mode magit restclient-helm helm-git-grep helm-ls-git))))
+   '(powershell consult-ls-git consult-ag embark-consult embark consult marginalia orderless vertico dirvish all-the-icons-dired all-the-icons rainbow-delimiters company session csv-mode magit helm-ag helm-git-grep helm-ls-git)))
 
 ;; ---------
 ;; Basic
 ;; ---------
 
-;; La fleche de direction vers le bas ne doit pas etendre le fichier
-;; en fin de tampon (seul un retour chariot explicite le fait).
+;; <down> at end of file should not create new lines on its own 
 (setq next-line-add-newlines nil)
 
-;; numero de lignes et de colonnes
-(column-number-mode t)
-(line-number-mode t)
-
-;; nom du fichier a la place de emacs@host
-(setq frame-title-format '(buffer-file-name "Emacs: %b (%f)" "Emacs: %b"))
-
-;; la completion respecte la casse
-(setq dabbrev-case-replace nil)
-
-;; Remplace les 'yes or no' par des 'y or n'
+;; replace 'yes or no' by 'y or n'
 (fset 'yes-or-no-p 'y-or-n-p)
 
 ;; store all backup and autosave files in the tmp dir
@@ -64,20 +81,46 @@
 ;; disable lock files for concurrent editing : cannot be moved to another folder
 (setq create-lockfiles nil)
 
-;; Lorsqu'on saisit un texte alors qu'une zone est selectionnee, cette
-;; derniere est ecrasee par le texte saisi.
+;; delete text when writting over selection
 (delete-selection-mode 1)
 
-(tool-bar-mode -1)
-(setq visible-bell 1)
+(cua-mode nil) ;; CUA mode activated
+(global-set-key [(control meta o)] 'find-file)
+
+(global-set-key "\M-l" (quote goto-line))
+(global-set-key "\C-x\ a" (quote mark-whole-buffer))
+
+;; screen split
+(global-set-key [f4] (quote kill-this-buffer)) 
+(global-set-key [f5] (quote delete-window))
+(global-set-key [f6] (quote other-window)) 
+(global-set-key [f7] (quote split-window-vertically))
+(global-set-key [f8] (quote split-window-horizontally))
+
+;; Rectangles / Column mode
+;; Copy rectangle : C-x r r r ==> C-x * 2 while selecting in CUA + r (rectangle) + r (put to register) + r (name of the register)
+;; Insert rectangle : C-x r i r ==> C-x * 2 while selecting in CUA + r (rectangle) + i (insert from register) + r (name of the register)
+
+;; Kill ring
+;; C-y (or C-v in CUA) + M-y : paste old value from kill-ring
 
 ;; ---------
 ;; UI
 ;; ---------
 
-(when window-system (set-frame-size (selected-frame) 80 24))
+;; display file name under frame 
+(setq frame-title-format '(buffer-file-name "Emacs: %b (%f)" "Emacs: %b"))
 
-;; Default Window 
+(tool-bar-mode -1) ;; no toolbar 
+(setq visible-bell 1) ;; no sounding bell
+
+;; display column and line number
+(column-number-mode t)
+(line-number-mode t)
+
+(when window-system (set-frame-size (selected-frame) 120 48))
+
+;; Default window
 (set-foreground-color "white")
 (set-background-color "gray10")
 (set-cursor-color "firebrick")
@@ -88,7 +131,6 @@
               '((foreground-color . "white")
                 (background-color . "gray10")
                 (cursor-color . "firebrick"))))
-
 
 
 ;; windows font
@@ -107,18 +149,19 @@
 (global-hl-line-mode 1)
 
 ;; transparency
-(defun transparency (alpha-level)
-  (interactive "p")
-  (message (format "Alpha level passed in: %s" alpha-level))
-  (let ((alpha-level (if (< alpha-level 2)
-			 (read-number "Opacity percentage: " 85)
-		       alpha-level))
-	(myalpha (frame-parameter nil 'alpha)))
-    (set-frame-parameter nil 'alpha alpha-level))
-  (message (format "Alpha level is %d" (frame-parameter nil 'alpha))))
+;; (defun transparency (alpha-level)
+;;   (interactive "p")
+;;   (message (format "Alpha level passed in: %s" alpha-level))
+;;   (let ((alpha-level (if (< alpha-level 2)
+;; 			 (read-number "Opacity percentage: " 85)
+;; 		       alpha-level))
+;; 	(myalpha (frame-parameter nil 'alpha)))
+;;     (set-frame-parameter nil 'alpha alpha-level))
+;;   (message (format "Alpha level is %d" (frame-parameter nil 'alpha))))
+
 
 ;; ---------
-;; Parentheses handling
+;; Delimiters handling
 ;; ---------
 
 (require 'paren)
@@ -126,7 +169,6 @@
 (setq blink-matching-paren t)
 (setq blink-matching-paren-on-screen t)
 
-;; rainbow-delimiters : parentheses highlight
 (dolist (package '(rainbow-delimiters))
   (unless (package-installed-p package)
     (package-install package)))
@@ -137,9 +179,9 @@
   (progn
     (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)))
 
+
 (require 'cl-lib)
 (require 'color)
-
 (set-face-attribute 'rainbow-delimiters-depth-1-face nil
 		    :foreground "orange"
                     :inherit 'rainbow-delimiters-base-face)
@@ -167,11 +209,11 @@
 	(t (self-insert-command (or arg 1)))))
 (global-set-key (kbd "C-S-p") 'match-paren)
 
-
 ;; ---------
 ;; History
 ;; ---------
 
+(require 'savehist)
 (savehist-mode 1)
 (setq savehist-file "~/.emacs.d/savehist")
 (setq history-length t)
@@ -182,27 +224,9 @@
         search-ring
 	isearch-string
         regexp-search-ring
-	helm-M-x-input-history
-	helm-grep-history
-	helm-grep-ag-history
-	helm-ag--command-history
-	helm-M-x-input-history
 	))
 
-;; ---------
-;; End of lines 
-;; ---------
-
-;; convertion de formats de fichiers
-(defun dos-unix ()
-  (interactive)
-  (goto-char (point-min))
-  (while (search-forward "\r\n" nil t) (replace-match "\n")))
-
-(defun unix-dos ()
-  (interactive)
-  (goto-char (point-min))
-  (while (search-forward "\n" nil t) (replace-match "\r\n")))
+;;; 2022-07-22 : does not achieve expected result of remembering previous values under isearch, need to debug
 
 ;; ---------
 ;; CSV
@@ -243,21 +267,37 @@
     (setq company-dabbrev-downcase nil))
   :diminish company-mode)
 
-;; ----------
-;; BASIC SHORTCUTS
-;; ----------
-(cua-mode nil)
-(global-set-key [(control meta o)] 'find-file)
+;; ---------
+;; Misc text utility functions
+;; ---------
 
-(global-set-key "\M-l" (quote goto-line))
-(global-set-key "\C-x\ a" (quote mark-whole-buffer))
+(defun carriage-return-conversion-dos-to-unix()
+  (interactive)
+  (goto-char (point-min))
+  (while (search-forward "\r\n" nil t) (replace-match "\n")))
 
-;; screen split
-(global-set-key [f4] (quote kill-this-buffer))
-(global-set-key [f5] (quote delete-window)) ;; ferme la fenetre f5
-(global-set-key [f6] (quote other-window)) ;; rotation du cuseur			  f6
-(global-set-key [f7] (quote split-window-vertically)) ;; coupe en vertical	 f7
-(global-set-key [f8] (quote split-window-horizontally))	;; coupe en horizontal f8
+(defun carriage-return-conversion-unix-to-dos()
+  (interactive)
+  (goto-char (point-min))
+  (while (search-forward "\n" nil t) (replace-match "\r\n")))
+
+;; uniquify & sort-lines
+(defun uniquify-region ()
+  "remove duplicate adjacent lines in the given region"
+  (interactive)
+  (narrow-to-region (region-beginning) (region-end))
+  (beginning-of-buffer)
+  (while (re-search-forward "\\(.*\n\\)\\1+" nil t)
+    (replace-match "\\1" nil nil))
+  (widen)
+  nil)
+
+;; macro execution for all lines under region
+(global-set-key "\C-ce" 'apply-macro-to-region-lines)
+
+;; -------
+;; isearch
+;; -------
 
 (defun isearch-occur ()
   "Invoke `occur' from within isearch."
@@ -272,35 +312,14 @@
   (when isearch-forward (goto-char isearch-other-end)))
 (add-hook 'isearch-mode-end-hook 'custom-goto-match-beginning)
 
-;; macro pour toutes les lignes d'une région
-(global-set-key "\C-ce" 'apply-macro-to-region-lines)
-
-;; uniquify & sort-lines
-(defun uniquify-region ()
-  "remove duplicate adjacent lines in the given region"
-  (interactive)
-  (narrow-to-region (region-beginning) (region-end))
-  (beginning-of-buffer)
-  (while (re-search-forward "\\(.*\n\\)\\1+" nil t)
-    (replace-match "\\1" nil nil))
-  (widen)
-  nil)
-
-;; Rectangles / Column mode
-;; Copy rectangle : C-x r r r ==> C-x * 2 while selecting in CUA + r (rectangle) + r (put to register) + r (name of the register)
-;; Insert rectangle : C-x r i r ==> C-x * 2 while selecting in CUA + r (rectangle) + i (insert from register) + r (name of the register)
-
-;; Kill ring
-;; C-y (or C-v in CUA) + M-y : paste old value from kill-ring
-;; browse-kill-ring : visit and edit the kill ring
-
 
 ;; -------
-;; DIRED
+;; DIRED 
 ;; -------
 
-(require 'dired)   ;; available with default emacs install 
-(require 'dired-x) ;; available with default emacs install 
+(require 'dired) ;; available with default emacs install
+
+(require 'dired-x) ;; available with default emacs install
 
 (setq  dired-sort-menu-saved-config
        (quote ((dired-actual-switches . "-lah")
@@ -319,9 +338,9 @@
     (all-the-icons-install-fonts)))
 ;;; this will download required fonts, but still need to install them manually on windows (double click)
 
-(when (display-graphic-p)
-  (require 'all-the-icons)
-  (add-hook 'dired-mode-hook 'all-the-icons-dired-mode))
+;; (when (display-graphic-p)
+;;   (require 'all-the-icons)
+;;   (add-hook 'dired-mode-hook 'all-the-icons-dired-mode))
 
 (defun dired-ediff-marked-files ()
   "Run ediff on marked ediff files."
@@ -341,9 +360,7 @@
 (define-key dired-mode-map "n"	'dired-next-line)
 (define-key dired-mode-map "\C-n"  'dired-next-marked-file)
 (define-key dired-mode-map "\C-p"  'dired-prev-marked-file)
-
 (define-key dired-mode-map (kbd "<M-up>") 'dired-up-directory)
-;;(define-key dired-mode-map (kbd "<M-down>") 'dired-tree-down)
 
 (defun dired-for-each-marked-file(fn)
   "Do stuff for each marked file, only works in dired window"
@@ -353,7 +370,7 @@
 	(mapcar fn filenames))
     (error (format "Not a Dired buffer \(%s\)" major-mode))))
 
-;; integration with w32
+;; integration with windows
 (defun w32-browser (doc)
   "Browse to a particular file/URL using default web browser"
   (w32-shell-execute 1 doc))
@@ -382,17 +399,81 @@
 			  (dired-get-marked-files t)))
 (define-key dired-mode-map "Z"	'dired-do-zipfile)
 
-(setq ls-lisp-ignore-case t)
+;;(setq ls-lisp-ignore-case t)
 (setq dired-recursive-deletes 'top)
 (setq dired-recursive-copies  'always)
 (setq dired-listing-switches "-ahl")
 
-;; autorize "a" shortcut on dired (open destination in current buffer)
-(put 'dired-find-alternate-file 'disabled nil)
-
 (add-hook 'dired-mode-hook
 	  (lambda ()
-            (dired-hide-details-mode)))
+	    (dired-hide-details-mode)))
+
+;;(define-key dired-mode-map "q" 'kill-this-buffer) ;; consistent action with "v" view-file-mode
+(define-key dired-mode-map "b" 'consult-bookmark) ;; Good idea to set "b" to default bookmarks UI under dired-mode-map
+(put 'dired-find-alternate-file 'disabled nil) ;; autorize "a" shortcut on dired (open destination in current buffer)
+
+(use-package dirvish
+  :ensure t
+  :init
+  (dirvish-override-dired-mode)
+  :custom
+  ;; dirvish bookmarks are different from standard bookmarks : do not use
+  (dirvish-attributes '(all-the-icons file-size subtree-state))
+  (dirvish-hide-details nil)
+  :config
+  ;; Dired options are respected except a few exceptions, see *In relation to Dired* section above
+  (setq dired-dwim-target t) ;; guess destination folder if possible
+  (setq delete-by-moving-to-trash nil) ;; delete do not move to trash
+  (setq dirvish-reuse-session t)
+  ;; Enable mouse drag-and-drop files to other applications (added in Emacs 29, for unix system only)
+  (setq dired-mouse-drag-files t)
+  (setq mouse-drag-and-drop-region-cross-program t)
+  ;; Make sure to use the long name of flags when exists
+  ;; eg. use "--almost-all" instead of "-A"
+  ;; Otherwise some commands won't work properly
+  (setq dired-listing-switches
+        "-l --almost-all --human-readable --time-style=long-iso --group-directories-first --no-group")
+  ;; (setq dirvish-preview-dispatchers
+  ;;  	(cl-substitute 'pdf-preface 'pdf dirvish-preview-dispatchers)) ;; requires pdftoppm available in path / still not really working on W32 with a lot dependencies at execution time
+  :bind
+  ;; Bind `dirvish|dirvish-side|dirvish-dwim' as you see fit
+  (:map dired-mode-map ; Dirvish respects all the keybindings in this map
+	("M-<up>"	. dired-up-directory)
+	("M-n"		. dirvish-history-go-forward)
+	("M-<right>"	. dirvish-history-go-forward)
+	("M-p"		. dirvish-history-go-backward)
+	("M-<left>"	. dirvish-history-go-backward)
+	("M-j" 		. dirvish-history-jump)
+	("." . dired-omit-mode)
+	("b"   . consult-bookmark)
+	("f"   . dirvish-file-info-menu)
+	("y"   . dirvish-yank-menu)
+	("s"   . dirvish-quicksort) ; remapped `dired-sort-toggle-or-edit'
+	("?"   . dirvish-dispatch)  ; remapped `dired-summary'
+	("TAB" . dirvish-subtree-toggle)
+	("M-l" . dirvish-ls-switches-menu)
+	("M-m" . dirvish-mark-menu)
+	("M-f" . dirvish-toggle-fullscreen) ; 3 panes mode (parent / current / preview)
+	("M-s" . dirvish-setup-menu)
+	))
+
+;; register a plain text dirvish dispatcher for docx files
+(dirvish-define-preview docx (file ext)
+  "Preview docx files in plain text
+Require: `pandoc' (executable)"
+  :require ("pandoc" )
+  (cond ((equal ext "docx") `(shell . ("pandoc" "-t" "plain",file)))))
+(add-to-list 'dirvish-preview-dispatchers 'docx)
+
+;; register a plain text dirvish dispatcher for pdf files
+(dirvish-define-preview pdftotext (file ext)
+  "Preview pdf files in plain text
+Require: `pdftotext' (executable)"
+  :require ("pdftotext" )
+  (cond ((equal ext "pdf") `(shell . ("pdftotext",file,"-")))))
+(setq dirvish-preview-dispatchers
+      (cl-substitute 'pdftotext 'pdf dirvish-preview-dispatchers))
+
 
 ;; ---------------------
 ;; TRAMP
@@ -401,34 +482,32 @@
 (eval-after-load 'tramp '(setenv "SHELL" "/bin/bash"))
 (setq password-cache-expiry nil)
 
-
 ;; ---------------------
 ;; FIND / GREP
 ;; ---------------------
-(require 'find-dired)
 
-(global-set-key "\C-x\ f" (quote find-name-dired))
+;; (require 'find-dired)
 
-;; unix find need to be installed manually with, renamed to gfind and put in path
-(if (eq system-type 'windows-nt)
-    (setq find-program "gfind.exe")) 
+;; (global-set-key "\C-x\ f" (quote find-name-dired))
 
-;; pattern for find
-(setq find-ls-option (quote ("-exec ls -ld {} \;" . "-ld")))
+;; ;; unix find need to be installed manually with, renamed to gfind and put in path
+;; (if (eq system-type 'windows-nt)
+;;     (setq find-program "gfind.exe")) 
 
-;; pattern for recursive grep
-;;   <D> for the base directory
-;;   <X> for the find options to restrict directory list
-;;   <F> for the find options to limit the files matched
-;;   <C> for the place to put -i if the search is case-insensitive
-;;   <R> for the regular expression to search for
-(global-set-key "\C-x\ g" (quote rgrep))
-(setq grep-find-ignored-directories (quote ("CVS" ".git" ".svn" "classes" "build" "target" ".metadata" "pristine")))
-(setq grep-find-template "gfind . <X> -type f <F> -exec grep -a <C> -nH -e <R> {} \";\" ")
+;; ;; pattern for find
+;; (setq find-ls-option (quote ("-exec ls -ld {} \;" . "-ld")))
 
-;; -type f -regex ".*.\(js\|xml\|ts\|java\|sql\)" -and -not -path "*bower*" -and -not -path "*target*" 
+;; ;; pattern for recursive grep
+;; ;;   <D> for the base directory
+;; ;;   <X> for the find options to restrict directory list
+;; ;;   <F> for the find options to limit the files matched
+;; ;;   <C> for the place to put -i if the search is case-insensitive
+;; ;;   <R> for the regular expression to search for
+;; (global-set-key "\C-x\ g" (quote rgrep))
+;; (setq grep-find-ignored-directories (quote ("CVS" ".git" ".svn" "classes" "build" "target" ".metadata" "pristine")))
+;; (setq grep-find-template "gfind . <X> -type f <F> -exec grep -a <C> -nH -e <R> {} \";\" ")
 
-
+;; ;; -type f -regex ".*.\(js\|xml\|ts\|java\|sql\)" -and -not -path "*bower*" -and -not -path "*target*" 
 
 ;; ----------
 ;; TABBAR
@@ -500,7 +579,7 @@
 
 
 ;; ---------------
-;; Lisp
+;; Emacs Lisp
 ;; ---------------
 
 (defun read-lines (filePath)
@@ -524,7 +603,6 @@
   :mode ("\\.ps1" . powershell-mode)
   :ensure t)
 
-
 ;; ---------
 ;; XML
 ;; ---------
@@ -534,7 +612,7 @@
 	    auto-mode-alist))
 (setq nxml-auto-insert-xml-declaration-flag t)
 (setq nxml-slash-auto-complete-flag t)
-
+(setq rng-nxml-auto-validate-flag nil) ;; disable automatic validation by default
 
 (defun xml-pretty-print-region (begin end)
   "Pretty format XML markup in region. You need to have nxml-mode
@@ -552,16 +630,15 @@ by using nxml's indentation rules."
       (backward-char) (insert "\n") (setq end (1+ end)))
     (indent-region begin end))
   (message "XML pretty print done!"))
-
-;; (use-package xml-format
-;;   :demand t
-;;   :after nxml-mode)
-
-
+ 
 ;; ------------------
 ;; SQL
 ;; ------------------
 ;; (setq sql-product (quote oracle))
+
+;; (add-hook 'sql-interactive-mode-hook
+;;           '(lambda ()
+;;              (company-mode)))
 
 ;; (require 'sqlplus)
 ;; (add-to-list 'auto-mode-alist '("\\.sqp\\'" . sqlplus-mode))
@@ -632,73 +709,210 @@ by using nxml's indentation rules."
 
 
 ;; ------------------
-;; HELM-MODE
+;; vertico / orderless / marginalia / consult / embark
 ;; ------------------
 
-;; install helm package which are going to be required
-(dolist (package '(helm helm-swoop helm-projectile helm-ls-git helm-git-grep helm-ag))
+(dolist (package '(vertico orderless marginalia consult consult-ag consult-ls-git embark embark-consult))
   (unless (package-installed-p package)
     (package-install package)))
 
-(require 'helm)
+;; Enable vertico 
+(use-package vertico
+  :init
+  (vertico-mode))
 
-(with-eval-after-load 'helm
-  (setq helm-always-two-windows nil)
-  (setq helm-display-buffer-default-height 20)
-  (setq helm-default-display-buffer-functions '(display-buffer-in-side-window)))
+;; use the orderless completion style : (gets fuzzy matching)
+(use-package orderless
+  :init
+  ;; Configure a custom style dispatcher (see the Consult wiki)
+  ;; (setq orderless-style-dispatchers '(+orderless-dispatch)
+  ;;       orderless-component-separator #'orderless-escapable-split-on-space)
+  (setq completion-styles '(orderless basic)
+        completion-category-defaults nil
+        completion-category-overrides '((file (styles partial-completion)))))
 
-(global-set-key (kbd "M-y") 'helm-show-kill-ring)
-(define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action)
-(define-key helm-map (kbd "C-i")   'helm-execute-persistent-action) ;; make TAB works in terminal, C-i is the same as TAB
-(define-key helm-map (kbd "S-<tab>") 'helm-select-action)
+;; Enable richer annotations on vertico with marginalia
+(use-package marginalia
+  ;; Either bind `marginalia-cycle` globally or only in the minibuffer
+  :bind (("M-A" . marginalia-cycle)
+         :map minibuffer-local-map
+         ("M-A" . marginalia-cycle))
+  ;; The :init configuration is always executed (Not lazy!)
+  :init
+  ;; Must be in the :init section of use-package such that the mode gets
+  ;; enabled right away. Note that this forces loading the package.
+  (marginalia-mode))
 
-;; Buffer list + bookmarks + recent files under Helm
-(setq helm-mini-default-sources '(helm-source-buffers-list
-                                  helm-source-bookmarks
-                                  helm-source-recentf))
-(global-set-key "\C-x\C-b" (quote helm-mini))
+;; register a file annotator that is not displaying file modes 
+(defun marginalia-annotator-local-file-no-modes (cand)
+  "Annotate local file without file modes CAND."
+  (when-let (attrs (ignore-errors
+		     ;; may throw permission denied errors
+		     (file-attributes (substitute-in-file-name
+				       (marginalia--full-candidate cand))
+				      'integer)))
+    (if (eq marginalia-align 'right)
+        (marginalia--fields
+         ;; File owner at the left
+         ((marginalia--file-owner attrs) :face 'marginalia-file-owner)
+         ((file-size-human-readable (file-attribute-size attrs))
+          :face 'marginalia-size :width -7)
+         ((marginalia--time (file-attribute-modification-time attrs))
+          :face 'marginalia-date :width -12))
+      (marginalia--fields
+       ((file-size-human-readable (file-attribute-size attrs))
+        :face 'marginalia-size :width -7)
+       ((marginalia--time (file-attribute-modification-time attrs))
+        :face 'marginalia-date :width -12)
+       ;; File owner at the right
+       ((marginalia--file-owner attrs) :face 'marginalia-file-owner)))))
+(add-to-list 'marginalia-annotator-registry
+             '(file marginalia-annotator-local-file-no-modes marginalia-annotate-file builtin none))
 
-;; helm M-x replacement
-(global-set-key (kbd "M-x") 'helm-M-x)
+;; save last annotators selected
+(advice-add #'marginalia-cycle :after
+            (lambda ()
+              (let ((inhibit-message t))
+                (customize-save-variable 'marginalia-annotator-registry
+                                         marginalia-annotator-registry))))
 
-(global-set-key (kbd "C-f") nil) ;; Remove the old keybinding
-(global-set-key (kbd "C-f h") 'helm-resume)
+;; Execute actions on proposed / selected items
+(use-package embark
+  :ensure t
+  :bind
+  (("M-E" . embark-act)          ;; pick some comfortable binding
+   ;; ("C-;" . embark-dwim)        ;; good alternative: M-.
+   )
+  :init
+  ;; Optionally replace the key help with a completing-read interface
+  (setq prefix-help-command #'embark-prefix-help-command)
+  :config
+  ;; Hide the mode line of the Embark live/completions buffers
+  (add-to-list 'display-buffer-alist
+	       '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none))))
+  )
 
-;; helm search content of buffers
-(global-set-key (kbd "C-f s") 'helm-multi-swoop-all)
+;; integration between embark and consult packages
+(use-package embark-consult
+  :ensure t
+  :after (embark consult)
+  :demand t ; only necessary if you have the hook below
+  ;; if you want to have consult previews as you move around an
+  ;; auto-updating embark collect buffer
+  :hook
+  (embark-collect-mode . consult-preview-at-point-mode))
 
-;; helm search repo with git grep
-(global-set-key (kbd "C-f g") 'helm-projectile-grep) ;; use projectile Git grep as default (able to grep whole project sources, not only subdirectories from where helm-git-grep is launched)
-(setq projectile-use-git-grep t)
-;;(global-set-key (kbd "C-f g") 'helm-grep-do-git-grep)
-;;(define-key isearch-mode-map (kbd "C-f g") 'helm-git-grep-from-isearch)
+(global-set-key (kbd "C-f") nil) ;; Remove the old keybinding - reuse it when trying to "f"ind something
 
-(setq helm-git-grep-candidate-number-limit 100)
-(setq helm-input-idle-delay 0.5)
-(setq helm-idle-delay 1) ;; 1 second before launching any external command (git grep chokes otherwise)
+;; use cases to replace helm
 
-;; helm ag 
-(global-set-key (kbd "C-f a") 'helm-ag) ;; use ag for text and log folders searches
+;;; helm-M-x : covered OOTB with vertico
 
-;; helm git ls
-(add-to-list 'helm-sources-using-default-as-input 'helm-source-ls-git)
-(global-set-key (kbd "C-f l") 'helm-ls-git-ls)
+;;; helm-show-kill-ring : covered
+;;;; (display of multiple lines copied is not great, but has live preview in buffer when hovering)
+(global-set-key (kbd "M-y") 'consult-yank-from-kill-ring)
 
-;; helm bookmarks
-(global-set-key (kbd "C-f b") 'helm-bookmarks)
+;;; helm-mini : easy switch to buffer list + bookmarks + recent files : consult-buffer
+;;; helm-mini : review open buffers, select some and kill them : manageable with embark after filtering with vertico
+(global-set-key (kbd "C-x C-b") 'consult-buffer)
 
-;; helm google, because why not 
-(when (executable-find "curl")
-  (setq helm-google-suggest-use-curl-p t))
-(global-set-key (kbd "C-f w") 'helm-google-suggest)
+;;; helm-multi-swoop-all : search content of all buffers : ??
+(global-set-key (kbd "C-f s") 'consult-line-multi)
 
-;; http://andrewjamesjohnson.com/suppressing-ad-handle-definition-warnings-in-emacs/
-(setq ad-redefinition-action 'accept)
+;;; helm-projectile-grep : grep whole project sources, not only subdirectories from where git grep is launched : ???
+(global-set-key (kbd "C-f g") 'consult-git-grep)
+(global-set-key (kbd "C-f G") 'consult-grep)
 
+;;; helm-git-ls : find file name on git repo
+(require 'consult-ls-git)
+(global-set-key (kbd "C-f l") 'consult-ls-git)
+
+;;; helm-ag : use ag for text and log folders searches + live filtering
+(require 'consult-ag)
+(global-set-key (kbd "C-f a") 'consult-ag)
+
+;;; keep or flush lines (! ) from buffer
+(global-set-key (kbd "C-f k") 'consult-keep-lines)
+
+;; Bookmarks
+(global-set-key (kbd "C-f b") 'consult-bookmark)
+
+;; ------------------
+;; HELM-MODE
+;; ------------------
+
+;; ;; install helm packages which are going to be required
+;; (dolist (package '(helm helm-swoop helm-projectile helm-ls-git helm-git-grep helm-ag))
+;;   (unless (package-installed-p package)
+;;     (package-install package)))
+
+;; (require 'helm)
+
+;; (with-eval-after-load 'helm
+;;   (setq helm-always-two-windows nil)
+;;   (setq helm-display-buffer-default-height 20)
+;;   (setq helm-default-display-buffer-functions '(display-buffer-in-side-window)))
+
+;; ;; (global-set-key (kbd "M-y") 'helm-show-kill-ring)
+;; (define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action)
+;; (define-key helm-map (kbd "C-i")   'helm-execute-persistent-action) ;; make TAB works in terminal, C-i is the same as TAB
+;; (define-key helm-map (kbd "S-<tab>") 'helm-select-action)
+
+;; ;; Buffer list + bookmarks + recent files under Helm
+;; (setq helm-mini-default-sources '(helm-source-buffers-list
+;;                                   helm-source-bookmarks
+;;                                   helm-source-recentf))
+;; ;;(global-set-key "\C-x\C-b" (quote helm-mini))
+
+;; ;; helm M-x replacement
+;; ;; (global-set-key (kbd "M-x") 'helm-M-x)
+
+;; ;; (global-set-key (kbd "C-f h") 'helm-resume)
+
+;; ;; helm search content of buffers
+;; ;;(global-set-key (kbd "C-f s") 'helm-multi-swoop-all)
+
+;; ;; helm search repo with git grep
+;; ;; (global-set-key (kbd "C-f g") 'helm-projectile-grep) ;; use projectile Git grep as default (able to grep whole project sources, not only subdirectories from where helm-git-grep is launched)
+;; (setq projectile-use-git-grep t)
+;; ;;(global-set-key (kbd "C-f g") 'helm-grep-do-git-grep)
+;; ;;(define-key isearch-mode-map (kbd "C-f g") 'helm-git-grep-from-isearch)
+
+;; (setq helm-git-grep-candidate-number-limit 100)
+;; (setq helm-input-idle-delay 0.5)
+;; (setq helm-idle-delay 1) ;; 1 second before launching any external command (git grep chokes otherwise)
+
+;; ;; helm ag
+;; ;; (global-set-key (kbd "C-f a") 'helm-ag) ;; use ag for text and log folders searches
+
+;; ;; helm git ls
+;; (add-to-list 'helm-sources-using-default-as-input 'helm-source-ls-git)
+;; ;;(global-set-key (kbd "C-f l") 'helm-ls-git-ls)
+
+;; ;; helm bookmarks
+;; ;; (global-set-key (kbd "C-f b") 'helm-bookmarks)
+
+;; ;; helm google, because why not 
+;; (when (executable-find "curl")
+;;   (setq helm-google-suggest-use-curl-p t))
+;; (global-set-key (kbd "C-f w") 'helm-google-suggest)
+
+;; ;; http://andrewjamesjohnson.com/suppressing-ad-handle-definition-warnings-in-emacs/
+;; (setq ad-redefinition-action 'accept)
+
+;; ;; make helm header sections smaller
+;; (eval-after-load 'helm
+;;   (lambda () 
+;;     (set-face-attribute 'helm-source-header nil
+;;                         :background "gray30"
+;;                         :height 90)))
 
 ;; ------------------
 ;; ORG-MODE
 ;; ------------------
+
 (setq org-export-with-sub-superscripts nil)
 (setq org-src-fontify-natively t)
 (setq org-export-html-postamble nil)
@@ -718,15 +932,14 @@ by using nxml's indentation rules."
 (setq abbreviated-calendar-year nil)
 (setq diary-abbreviated-year-flag nil)
 
-;; calendrier en francais
+;; calendar days in French
 ;; (setq calendar-week-start-day 1  ; 0:Sunday, 1:Monday
 ;;       calendar-day-name-array ["Dimanche" "Lundi" "Mardi" "Mercredi"
 ;;     						   "Jeudi" "Vendredi" "Samedi"]
-;;       calendar-month-name-array ["Janvier" "Février" "Mars" "Avril" "Mai"
+;;       calendar-month-name-array ["Janvier" "FÃ©vrier" "Mars" "Avril" "Mai"
 ;;     							 "Juin" "Juillet" "Aout" "Septembre"
-;;     							 "Octobre" "Novembre" "Décembre"]
+;;     							 "Octobre" "Novembre" "DÃ©cembre"]
 ;;       )
-
 
 ;; mark all visible dates that have diary entries
 (setq mark-diary-entries-in-calendar t)
@@ -734,9 +947,6 @@ by using nxml's indentation rules."
 
 ;; marks the current date, by changing its face
 (add-hook 'today-visible-calendar-hook 'calendar-mark-today)
-
-;; M-x sunrise-sunset
-;; Lille : Longitude: 3.058 - Latitude: 50.632 
 
 ;; remove some holidays
 (setq general-holidays nil)	        ; get rid of too U.S.-centric holidays
@@ -753,7 +963,6 @@ by using nxml's indentation rules."
 		 (calendar-iso-from-absolute
 		  (calendar-absolute-from-gregorian (list month day year)))))
 	'font-lock-face 'font-lock-function-name-face))
-
 
 (add-hook 'calendar-load-hook
           (lambda ()
@@ -792,7 +1001,6 @@ by using nxml's indentation rules."
                 (message "Region has %d workday%s (inclusive)"
                          days (if (> days 1) "s" ""))))
             ))
-
 
 ;; ------------------
 ;; ASCII
@@ -877,13 +1085,12 @@ by using nxml's indentation rules."
 ;; REST CLIENT MODE
 ;; ------------------
 
-(dolist (package '(restclient restclient-helm))
-  (unless (package-installed-p package)
-    (package-install package)))
-
-(setq auto-mode-alist
-      (cons '("\\.\\(rest\\|restclient\\)\\'" . restclient-mode) auto-mode-alist))
-
+;; (dolist (package '(restclient restclient-helm))
+;;   (unless (package-installed-p package)
+;;     (package-install package)))
+;;  
+;; (setq auto-mode-alist
+;;       (cons '("\\.\\(rest\\|restclient\\)\\'" . restclient-mode) auto-mode-alist))
 
 ;; ------------------
 ;; Magit
@@ -894,7 +1101,6 @@ by using nxml's indentation rules."
   (unless (package-installed-p package)
     (package-install package)))
 
-
 ;; ------------------
 ;; SERVER mode
 ;; ------------------
@@ -902,10 +1108,8 @@ by using nxml's indentation rules."
 (if (eq system-type 'windows-nt)
     (progn 
       (require 'server)
-      
       (if (eq (server-running-p) :other)
 	  (server-force-delete))
-
       (unless (server-running-p)
 	(server-start)
 	(set-frame-parameter nil 'title "Emacs Server"))))
