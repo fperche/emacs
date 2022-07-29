@@ -474,6 +474,17 @@ Require: `pdftotext' (executable)"
 (setq dirvish-preview-dispatchers
       (cl-substitute 'pdftotext 'pdf dirvish-preview-dispatchers))
 
+(dirvish-define-preview unzip-archive (file ext)
+  "Preview archive files (replaced zipinfo requirement with 'unzip -Z'
+Require: `unzip' (executable)
+Require: `tar' (executable)"
+  :require ("unzip" "tar")
+  (cond ((equal ext "zip") `(shell . ("unzip" "-Z" ,file)))
+        ((member ext '("tar" "zst")) `(shell . ("tar" "-tvf" ,file))))
+  )
+(setq dirvish-preview-dispatchers
+      (cl-substitute 'unzip-archive 'archive dirvish-preview-dispatchers))
+
 
 ;; ---------------------
 ;; TRAMP
@@ -630,7 +641,7 @@ by using nxml's indentation rules."
       (backward-char) (insert "\n") (setq end (1+ end)))
     (indent-region begin end))
   (message "XML pretty print done!"))
- 
+
 ;; ------------------
 ;; SQL
 ;; ------------------
