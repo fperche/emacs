@@ -1082,6 +1082,32 @@ by using nxml's indentation rules."
 
 
 ;; ------------------
+;; HIDE SHOW MODE
+;; ------------------
+
+(use-package hideshow
+  :bind (
+	 ("C-<kp-subtract>" . hs-toggle-hiding)
+	 ("C-M-<kp-subtract>" . hs-hide-all)
+	 ("C-<kp-add>" . hs-show-block)
+         ("C-M-<kp-add>" . hs-show-all)
+	 )
+  :init (add-hook #'prog-mode-hook #'hs-minor-mode)
+  :diminish hs-minor-mode
+  :config
+  ;; Add `json-mode' and `javascript-mode' to the list
+  (setq hs-special-modes-alist
+        (mapcar 'purecopy
+                '((c-mode "{" "}" "/[*/]" nil nil)
+                  (c++-mode "{" "}" "/[*/]" nil nil)
+                  (java-mode "{" "}" "/[*/]" nil nil)
+                  (js-mode "{" "}" "/[*/]" nil)
+                  (json-mode "{" "}" "/[*/]" nil)
+                  (javascript-mode  "{" "}" "/[*/]" nil))))
+  (setq hs-isearch-open t) ;; Automatically open a block if you search for something where it matches
+  )
+
+;; ------------------
 ;; REST CLIENT MODE
 ;; ------------------
 
