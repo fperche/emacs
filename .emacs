@@ -306,12 +306,26 @@
     (occur (if isearch-regexp isearch-string (regexp-quote isearch-string)))))
 (define-key isearch-mode-map (kbd "C-o") 'isearch-occur)
 
+(defun isearch-consult-line ()
+  "Invoke `consult-line' from within isearch."
+  (interactive)
+  (let ((case-fold-search isearch-case-fold-search))
+    (consult-line (if isearch-regexp isearch-string (regexp-quote isearch-string)))))
+(define-key isearch-mode-map (kbd "C-l") 'isearch-consult-line)
+
+(defun isearch-consult-line-multi ()
+  "Invoke `consult-line-multi' from within isearch."
+  (interactive)
+  (let ((case-fold-search isearch-case-fold-search))
+    (consult-line-multi (if isearch-regexp isearch-string (regexp-quote isearch-string)))))
+(define-key isearch-mode-map (kbd "C-f s") 'isearch-consult-line-multi)
+
+
 ;; always exit searches at the beginning of the expression found
 (defun custom-goto-match-beginning ()
   "Use with isearch hook to end search at first char of match."
   (when isearch-forward (goto-char isearch-other-end)))
 (add-hook 'isearch-mode-end-hook 'custom-goto-match-beginning)
-
 
 ;; -------
 ;; DIRED 
@@ -418,13 +432,17 @@
   (dirvish-override-dired-mode)
   :custom
   ;; dirvish bookmarks are different from standard bookmarks : do not use
-  (dirvish-attributes '(all-the-icons file-size subtree-state))
+  ;; if under 
+  (if (display-graphic-p)
+      (dirvish-attributes '(file-size subtree-state))
+    (dirvish-attributes '(all-the-icons file-size subtree-state))
+    )
   (dirvish-hide-details nil)
   :config
   ;; Dired options are respected except a few exceptions, see *In relation to Dired* section above
   (setq dired-dwim-target t) ;; guess destination folder if possible
   (setq delete-by-moving-to-trash nil) ;; delete do not move to trash
-  (setq dirvish-reuse-session t)
+  ;; (setq dirvish-reuse-session t)
   ;; Enable mouse drag-and-drop files to other applications (added in Emacs 29, for unix system only)
   (setq dired-mouse-drag-files t)
   (setq mouse-drag-and-drop-region-cross-program t)
@@ -474,7 +492,7 @@ Require: `pdftotext' (executable)"
 (setq dirvish-preview-dispatchers
       (cl-substitute 'pdftotext 'pdf dirvish-preview-dispatchers))
 
-(dirvish-define-preview unzip-archive (file ext)
+(dirvish-define-preview archive-unzip (file ext)
   "Preview archive files (replaced zipinfo requirement with 'unzip -Z'
 Require: `unzip' (executable)
 Require: `tar' (executable)"
@@ -483,8 +501,7 @@ Require: `tar' (executable)"
         ((member ext '("tar" "zst")) `(shell . ("tar" "-tvf" ,file))))
   )
 (setq dirvish-preview-dispatchers
-      (cl-substitute 'unzip-archive 'archive dirvish-preview-dispatchers))
-
+      (cl-substitute 'archive-unzip 'archive dirvish-preview-dispatchers))
 
 ;; ---------------------
 ;; TRAMP
@@ -1152,4 +1169,11 @@ by using nxml's indentation rules."
 	(set-frame-parameter nil 'title "Emacs Server"))))
 
 ;; shortcut to start emacs under windows
-;; D:\emacs\bin\emacsclientw.exe -c -n -a d:\emacs\bin\runemacs.exe
+;;; D:\emacs\bin\emacsclientw.exe -c -n -a d:\emacs\bin\runemacs.exe
+
+;; regedit entries to get "Open with Emacs" on empty background to open in dired
+;;; Windows Registry Editor Version 5.00
+;;; [HKEY_CLASSES_ROOT\Directory\Background\shell\OpenWithEmacs]
+;;; @="Open with &Emacs"
+;;; [HKEY_CLASSES_ROOT\Directory\Background\shell\OpenWithEmacs\command]
+;;; @="D:\\emacs\\bin\\emacsclientw.exe -c -n -a d:\\emacs\\bin\\runemacs.exe \"%V\""
