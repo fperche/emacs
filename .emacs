@@ -23,35 +23,7 @@
    (require 'use-package)))
 
 (custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(marginalia-annotator-registry
-   '((file marginalia-annotator-local-file-no-modes marginalia-annotate-file builtin none)
-     (command marginalia-annotate-binding builtin none marginalia-annotate-command)
-     (embark-keybinding marginalia-annotate-embark-keybinding builtin none)
-     (customize-group marginalia-annotate-customize-group builtin none)
-     (variable marginalia-annotate-variable builtin none)
-     (function marginalia-annotate-function builtin none)
-     (face marginalia-annotate-face builtin none)
-     (color marginalia-annotate-color builtin none)
-     (unicode-name marginalia-annotate-char builtin none)
-     (minor-mode marginalia-annotate-minor-mode builtin none)
-     (symbol marginalia-annotate-symbol builtin none)
-     (environment-variable marginalia-annotate-environment-variable builtin none)
-     (input-method marginalia-annotate-input-method builtin none)
-     (coding-system marginalia-annotate-coding-system builtin none)
-     (charset marginalia-annotate-charset builtin none)
-     (package marginalia-annotate-package builtin none)
-     (imenu marginalia-annotate-imenu builtin none)
-     (bookmark marginalia-annotate-bookmark builtin none)
-     (file marginalia-annotate-file builtin none)
-     (project-file marginalia-annotate-project-file builtin none)
-     (buffer marginalia-annotate-buffer builtin none)
-     (library marginalia-annotate-library builtin none)
-     (tab marginalia-annotate-tab builtin none)
-     (multi-category marginalia-annotate-multi-category builtin none)))
  '(package-selected-packages
    '(powershell consult-ls-git consult-ag embark-consult embark consult marginalia orderless vertico dirvish all-the-icons-dired all-the-icons rainbow-delimiters company session csv-mode magit helm-ag helm-git-grep helm-ls-git)))
 
@@ -844,6 +816,11 @@ by using nxml's indentation rules."
 
 ;;; helm-mini : easy switch to buffer list + bookmarks + recent files : consult-buffer
 ;;; helm-mini : review open buffers, select some and kill them : manageable with embark after filtering with vertico
+(recentf-mode 1) ;; turn on recent file list 
+(run-at-time nil (* 5 60) 'recentf-save-list) ;; save every 5 minutes recent file list
+
+;; (setq recentf-max-menu-items 25)
+;; (setq recentf-max-saved-items 25)
 (global-set-key (kbd "C-x C-b") 'consult-buffer)
 
 ;;; helm-multi-swoop-all : search content of all buffers : ??
@@ -1177,3 +1154,4 @@ by using nxml's indentation rules."
 ;;; @="Open with &Emacs"
 ;;; [HKEY_CLASSES_ROOT\Directory\Background\shell\OpenWithEmacs\command]
 ;;; @="D:\\emacs\\bin\\emacsclientw.exe -c -n -a d:\\emacs\\bin\\runemacs.exe \"%V\""
+
