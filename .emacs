@@ -259,6 +259,7 @@
   (interactive)
   (narrow-to-region (region-beginning) (region-end))
   (beginning-of-buffer)
+  (sort-lines nil (region-beginning) (region-end))
   (while (re-search-forward "\\(.*\n\\)\\1+" nil t)
     (replace-match "\\1" nil nil))
   (widen)
