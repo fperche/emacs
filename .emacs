@@ -1038,11 +1038,11 @@ by using nxml's indentation rules."
             (setq tab-width 4)
             (setq python-indent-offset 4)
 	    (global-eldoc-mode -1)
-            ;;(elpy-enable)
 	    ))
 
-;;(add-hook 'python-mode-hook 'jedi:setup)
-;;(setq jedi:complete-on-dot t) ; optional
+(if (eq system-type 'windows-nt)
+    (setq python-shell-interpreter "C:/Program Files/Python39/python.exe")
+  )
 
 ;; ------------------
 ;; Javascript / JS / Angular / TypeScript
