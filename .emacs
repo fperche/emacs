@@ -1,4 +1,6 @@
 
+(setq gc-cons-threshold (* 20 1024 1024))
+
 ;; ---------
 ;; PACKAGE
 ;; ---------
@@ -23,9 +25,12 @@
    (require 'use-package)))
 
 (custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(powershell consult-ls-git consult-ag embark-consult embark consult marginalia orderless vertico dirvish all-the-icons-dired all-the-icons rainbow-delimiters company session csv-mode magit helm-ag helm-git-grep helm-ls-git)))
+   '(quelpa-use-package powershell consult-ls-git consult-ag embark-consult embark consult marginalia orderless vertico dirvish all-the-icons-dired all-the-icons rainbow-delimiters company session csv-mode magit helm-ag helm-git-grep helm-ls-git)))
 
 ;; ---------
 ;; Basic
@@ -293,6 +298,14 @@
     (consult-line-multi (if isearch-regexp isearch-string (regexp-quote isearch-string)))))
 (define-key isearch-mode-map (kbd "C-f s") 'isearch-consult-line-multi)
 
+(defun isearch-consult-git-grep ()
+  "Invoke `consult-git-grep' from within isearch."
+  (interactive)
+  (let ((case-fold-search isearch-case-fold-search))
+    (consult-git-grep (if isearch-regexp isearch-string (regexp-quote isearch-string)))))
+(define-key isearch-mode-map (kbd "C-f g") 'isearch-consult-git-grep)
+
+
 
 ;; always exit searches at the beginning of the expression found
 (defun custom-goto-match-beginning ()
@@ -415,7 +428,7 @@
   ;; Dired options are respected except a few exceptions, see *In relation to Dired* section above
   (setq dired-dwim-target t) ;; guess destination folder if possible
   (setq delete-by-moving-to-trash nil) ;; delete do not move to trash
-  ;; (setq dirvish-reuse-session t)
+  (setq dirvish-reuse-session t)
   ;; Enable mouse drag-and-drop files to other applications (added in Emacs 29, for unix system only)
   (setq dired-mouse-drag-files t)
   (setq mouse-drag-and-drop-region-cross-program t)
@@ -435,9 +448,9 @@
 	("M-p"		. dirvish-history-go-backward)
 	("M-<left>"	. dirvish-history-go-backward)
 	("M-j" 		. dirvish-history-jump)
-	("." . dired-omit-mode)
 	("b"   . consult-bookmark)
-	("f"   . dirvish-file-info-menu)
+	;; ("." . dired-omit-mode)
+	;; ("f"   . dirvish-file-info-menu)
 	("y"   . dirvish-yank-menu)
 	("s"   . dirvish-quicksort) ; remapped `dired-sort-toggle-or-edit'
 	("?"   . dirvish-dispatch)  ; remapped `dired-summary'
@@ -816,15 +829,12 @@ by using nxml's indentation rules."
 (global-set-key (kbd "M-y") 'consult-yank-from-kill-ring)
 
 ;;; helm-mini : easy switch to buffer list + bookmarks + recent files : consult-buffer
-;;; helm-mini : review open buffers, select some and kill them : manageable with embark after filtering with vertico
+;;; helm-mini : review open buffers, select some and kill them : manageable with embark after filtering 
 (recentf-mode 1) ;; turn on recent file list 
 (run-at-time nil (* 5 60) 'recentf-save-list) ;; save every 5 minutes recent file list
-
-;; (setq recentf-max-menu-items 25)
-;; (setq recentf-max-saved-items 25)
 (global-set-key (kbd "C-x C-b") 'consult-buffer)
 
-;;; helm-multi-swoop-all : search content of all buffers : ??
+;;; helm-multi-swoop-all : search content of all buffers
 (global-set-key (kbd "C-f s") 'consult-line-multi)
 
 ;;; helm-projectile-grep : grep whole project sources, not only subdirectories from where git grep is launched : ???
@@ -835,7 +845,7 @@ by using nxml's indentation rules."
 (require 'consult-ls-git)
 (global-set-key (kbd "C-f l") 'consult-ls-git)
 
-;;; helm-ag : use ag for text and log folders searches + live filtering
+;;; helm-ag : use ag for text and log folders searches + live filtering with consult-keep-lines
 (require 'consult-ag)
 (global-set-key (kbd "C-f a") 'consult-ag)
 
@@ -973,7 +983,7 @@ by using nxml's indentation rules."
 (add-hook 'calendar-load-hook
           (lambda ()
             (calendar-set-date-style 'european)
-            (require 'cl)
+            ;;(require 'cl)
             (defun calendar-count-days-generic(d1 d2)
               (let* ((days (- (calendar-absolute-from-gregorian d1)
                               (calendar-absolute-from-gregorian d2)))
@@ -1008,6 +1018,12 @@ by using nxml's indentation rules."
                          days (if (> days 1) "s" ""))))
             ))
 
+;; stops calendar from messing up window layout : open where it is asked
+(add-to-list 'display-buffer-alist
+	     '("\\*Calendar\\*"
+	       (display-buffer-same-window)
+	       ))
+
 ;; ------------------
 ;; ASCII
 ;; ------------------
@@ -1038,6 +1054,7 @@ by using nxml's indentation rules."
             (setq tab-width 4)
             (setq python-indent-offset 4)
 	    (global-eldoc-mode -1)
+            ;;(elpy-enable)
 	    ))
 
 (if (eq system-type 'windows-nt)
