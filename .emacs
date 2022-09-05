@@ -437,6 +437,10 @@
   ;; Otherwise some commands won't work properly
   (setq dired-listing-switches
         "-l --almost-all --human-readable --time-style=long-iso --group-directories-first --no-group")
+  (set-face-attribute 'dirvish-hl-line nil
+		      :extend t
+		      :background "gray20")
+  (setq dirvish-hide-cursor nil)
   ;; (setq dirvish-preview-dispatchers
   ;;  	(cl-substitute 'pdf-preface 'pdf dirvish-preview-dispatchers)) ;; requires pdftoppm available in path / still not really working on W32 with a lot dependencies at execution time
   :bind
@@ -457,7 +461,7 @@
 	("TAB" . dirvish-subtree-toggle)
 	("M-l" . dirvish-ls-switches-menu)
 	("M-m" . dirvish-mark-menu)
-	("M-f" . dirvish-toggle-fullscreen) ; 3 panes mode (parent / current / preview)
+	("M-f" . dirvish-layout-toggle) ; 3 panes mode (parent / current / preview)
 	("M-s" . dirvish-setup-menu)
 	))
 
@@ -596,7 +600,7 @@ Require: `tar' (executable)"
 ;; Emacs Lisp
 ;; ---------------
 
-(defun read-lines (filePath)
+(defun el-read-lines (filePath)
   "Return a list of lines of a file at filePath."
   (with-temp-buffer
     (insert-file-contents filePath)
@@ -733,7 +737,16 @@ by using nxml's indentation rules."
 ;; Enable vertico 
 (use-package vertico
   :init
-  (vertico-mode))
+  (vertico-mode)
+  :config
+  (set-face-attribute 'vertico-current nil
+		      :extend t
+		      :background "gray20")
+  )
+
+;; (defface vertico-current '((t :inherit highlight :extend t))
+;;   "Face used to highlight the currently selected candidate.")
+
 
 ;; use the orderless completion style : (gets fuzzy matching)
 (use-package orderless
@@ -1171,5 +1184,5 @@ by using nxml's indentation rules."
 ;;; [HKEY_CLASSES_ROOT\Directory\Background\shell\OpenWithEmacs]
 ;;; @="Open with &Emacs"
 ;;; [HKEY_CLASSES_ROOT\Directory\Background\shell\OpenWithEmacs\command]
-;;; @="D:\\emacs\\bin\\emacsclientw.exe -c -n -a d:\\emacs\\bin\\runemacs.exe \"%V\""
+;;; @="D:\\emacs\\bin\\emacsclientw.exe -c -n -a d:\\emacs\\bin\\runemacs.exe \"%V\"
 
