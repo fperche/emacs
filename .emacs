@@ -30,7 +30,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
-   '(quelpa-use-package powershell consult-ls-git consult-ag embark-consult embark consult marginalia orderless vertico dirvish all-the-icons-dired all-the-icons rainbow-delimiters company session csv-mode magit helm-ag helm-git-grep helm-ls-git)))
+   '(quelpa-use-package powershell consult-ls-git consult-ag embark-consult embark consult marginalia orderless vertico dirvish all-the-icons-dired all-the-icons rainbow-delimiters company session csv-mode magit )))
 
 ;; ---------
 ;; Basic
@@ -444,7 +444,6 @@
   ;; (setq dirvish-preview-dispatchers
   ;;  	(cl-substitute 'pdf-preface 'pdf dirvish-preview-dispatchers)) ;; requires pdftoppm available in path / still not really working on W32 with a lot dependencies at execution time
   :bind
-  ;; Bind `dirvish|dirvish-side|dirvish-dwim' as you see fit
   (:map dired-mode-map ; Dirvish respects all the keybindings in this map
 	("M-<up>"	. dired-up-directory)
 	("M-n"		. dirvish-history-go-forward)
@@ -452,17 +451,15 @@
 	("M-p"		. dirvish-history-go-backward)
 	("M-<left>"	. dirvish-history-go-backward)
 	("M-j" 		. dirvish-history-jump)
-	("b"   . consult-bookmark)
-	;; ("." . dired-omit-mode)
-	;; ("f"   . dirvish-file-info-menu)
-	("y"   . dirvish-yank-menu)
-	("s"   . dirvish-quicksort) ; remapped `dired-sort-toggle-or-edit'
-	("?"   . dirvish-dispatch)  ; remapped `dired-summary'
-	("TAB" . dirvish-subtree-toggle)
-	("M-l" . dirvish-ls-switches-menu)
-	("M-m" . dirvish-mark-menu)
-	("M-f" . dirvish-layout-toggle) ; 3 panes mode (parent / current / preview)
-	("M-s" . dirvish-setup-menu)
+	("b"  		. consult-bookmark)
+	("y"  		. dirvish-yank-menu)
+	("s"  		. dirvish-quicksort) ; remapped `dired-sort-toggle-or-edit'
+	("?"  		. dirvish-dispatch)  ; remapped `dired-summary'
+	("TAB"		. dirvish-subtree-toggle)
+	("M-l"		. dirvish-ls-switches-menu)
+	("M-m"		. dirvish-mark-menu)
+	("M-f"		. dirvish-layout-toggle) ; 3 panes mode (parent / current / preview)
+	("M-s"		. dirvish-setup-menu)
 	))
 
 ;; register a plain text dirvish dispatcher for docx files
@@ -477,7 +474,7 @@ Require: `pandoc' (executable)"
 (dirvish-define-preview pdftotext (file ext)
   "Preview pdf files in plain text
 Require: `pdftotext' (executable)"
-  :require ("pdftotext" )
+  :require ("pdftotext")
   (cond ((equal ext "pdf") `(shell . ("pdftotext",file,"-")))))
 (setq dirvish-preview-dispatchers
       (cl-substitute 'pdftotext 'pdf dirvish-preview-dispatchers))
@@ -648,6 +645,10 @@ by using nxml's indentation rules."
       (backward-char) (insert "\n") (setq end (1+ end)))
     (indent-region begin end))
   (message "XML pretty print done!"))
+
+(defun xml-pretty-print-buffer ()
+  (interactive)
+  (xml-pretty-print-region (point-min) (point-max)))
 
 ;; ------------------
 ;; SQL
